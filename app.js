@@ -31,7 +31,9 @@ const answerSchema = new mongoose.Schema({
     type: { type: String, required: true },
     answers: { type: Array, required: true },  // For multiple-choice answers
     answer_id: mongoose.Schema.Types.Mixed,  // Can be a Number or Array
+    mac_address: { type: String, required: true }  // Add mac_address field
 });
+
 
 // Create a model based on the schema
 const Answer = mongoose.model('Answer', answerSchema);
@@ -41,7 +43,11 @@ app.use(bodyParser.json());
 
 // Define the setanswers POST route to store answers in MongoDB
 app.post('/setanswers', async (req, res) => {
-    const answers = req.body;
+    const { mac_address, answers } = req.body; // Extract mac_address and answers
+
+    if (!mac_address || !answers || !Array.isArray(answers)) {
+        return res.status(400).json({ message: 'Invalid input format. "mac_address" and "answers" are required.' });
+    }
 
     try {
         for (const answer of answers) {
@@ -59,16 +65,22 @@ app.post('/setanswers', async (req, res) => {
                 }
             }
 
-            const newAnswer = new Answer(answer);
+            // Create a new answer document with the mac_address as an additional field
+            const newAnswer = new Answer({
+                ...answer,  // Spread the answer object to include its fields
+                mac_address // Add mac_address field
+            });
+            
             await newAnswer.save();
         }
 
-        res.status(200).json({ message: 'Answers received and saved successfully', data: answers });
+        res.status(200).json({ message: 'Answers received and saved successfully', mac_address, data: answers });
     } catch (error) {
         console.error('Error saving answers:', error);
         res.status(500).json({ message: 'Error saving answers', error });
     }
 });
+
 
 
 
