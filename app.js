@@ -4,7 +4,6 @@ const mongoose = require('mongoose');
 const cors = require("cors");
 
 const app = express();
-
 const port = 4000;
 
 // Allow Cross-Origin requests
@@ -12,7 +11,8 @@ app.use(cors());
 
 // Connect to MongoDB
 mongoose.connect(
-    "mongodb+srv://lironamy:Ladygaga2@cluster0.sn5e7l9.mongodb.net/stepgeneretor?retryWrites=true&w=majority"
+    "mongodb+srv://lironamy:Ladygaga2@cluster0.sn5e7l9.mongodb.net/stepgeneretor?retryWrites=true&w=majority",
+    { useNewUrlParser: true, useUnifiedTopology: true }
 );
 
 // On Connection
@@ -31,9 +31,9 @@ const answerSchema = new mongoose.Schema({
     type: { type: String, required: true },
     answers: { type: Array, required: true },  // For multiple-choice answers
     answer_id: mongoose.Schema.Types.Mixed,  // Can be a Number or Array
-    mac_address: { type: String, required: true }  // Add mac_address field
+    mac_address: { type: String, required: true },
+    easygjson: mongoose.Schema.Types.Mixed  // Field for storing JSON
 });
-
 
 // Create a model based on the schema
 const Answer = mongoose.model('Answer', answerSchema);
@@ -43,7 +43,7 @@ app.use(bodyParser.json());
 
 // Define the setanswers POST route to store answers in MongoDB
 app.post('/setanswers', async (req, res) => {
-    const { mac_address, answers } = req.body; // Extract mac_address and answers
+    const { mac_address, answers } = req.body;
 
     if (!mac_address || !answers || !Array.isArray(answers)) {
         return res.status(400).json({ message: 'Invalid input format. "mac_address" and "answers" are required.' });
@@ -70,7 +70,7 @@ app.post('/setanswers', async (req, res) => {
                 ...answer,  // Spread the answer object to include its fields
                 mac_address // Add mac_address field
             });
-            
+
             await newAnswer.save();
         }
 
@@ -81,8 +81,7 @@ app.post('/setanswers', async (req, res) => {
     }
 });
 
-
-
+// Define the setanswers GET route to retrieve stored answers from MongoDB
 app.get('/setanswers', async (req, res) => {
     const { mac_address } = req.query;
 
@@ -100,9 +99,9 @@ app.get('/setanswers', async (req, res) => {
     }
 });
 
-
+// Define the saveeasyjson POST route to save JSON under easygjson field
 app.post('/saveeasyjson', async (req, res) => {
-    const { mac_address, easygjson } = req.body; // Extract mac_address and JSON data
+    const { mac_address, easygjson } = req.body;
 
     if (!mac_address || !easygjson) {
         return res.status(400).json({ message: 'Invalid input format. "mac_address" and "easygjson" are required.' });
@@ -113,7 +112,7 @@ app.post('/saveeasyjson', async (req, res) => {
         const updatedAnswer = await Answer.findOneAndUpdate(
             { mac_address },
             { $set: { easygjson } },
-            { new: true, upsert: true }
+            { new: true, upsert: true } // Return the new document, create if not exists
         );
 
         res.status(200).json({ message: 'JSON saved successfully', data: updatedAnswer });
@@ -123,10 +122,7 @@ app.post('/saveeasyjson', async (req, res) => {
     }
 });
 
-
 // Start the server
-app.listen(4000, '0.0.0.0', () => {
-    console.log('Server running on http://52.23.246.251:4000');
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on http://52.23.246.251:${port}`);
 });
-
-
