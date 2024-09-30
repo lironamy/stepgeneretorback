@@ -83,12 +83,16 @@ app.post('/setanswers', async (req, res) => {
 
 
 
-
-// Define the setanswers GET route to retrieve stored answers from MongoDB
 app.get('/setanswers', async (req, res) => {
+    const { mac_address } = req.query;
+
+    if (!mac_address) {
+        return res.status(400).json({ message: 'mac_address is required' });
+    }
+
     try {
-        // Retrieve all stored answers from MongoDB
-        const storedAnswers = await Answer.find();
+        // Retrieve all stored answers for the provided mac_address
+        const storedAnswers = await Answer.find({ mac_address });
         res.status(200).json({ message: 'Answers retrieved successfully', data: storedAnswers });
     } catch (error) {
         console.error('Error retrieving answers:', error);
@@ -96,9 +100,33 @@ app.get('/setanswers', async (req, res) => {
     }
 });
 
+
+app.post('/saveeasyjson', async (req, res) => {
+    const { mac_address, easygjson } = req.body; // Extract mac_address and JSON data
+
+    if (!mac_address || !easygjson) {
+        return res.status(400).json({ message: 'Invalid input format. "mac_address" and "easygjson" are required.' });
+    }
+
+    try {
+        // Find the answers associated with the given mac_address and update with easygjson
+        const updatedAnswer = await Answer.findOneAndUpdate(
+            { mac_address },
+            { $set: { easygjson } },
+            { new: true, upsert: true }
+        );
+
+        res.status(200).json({ message: 'JSON saved successfully', data: updatedAnswer });
+    } catch (error) {
+        console.error('Error saving JSON:', error);
+        res.status(500).json({ message: 'Error saving JSON', error });
+    }
+});
+
+
 // Start the server
 app.listen(4000, '0.0.0.0', () => {
-    console.log('Server running on http://0.0.0.0:4000');
+    console.log('Server running on http://52.23.246.251:4000');
 });
 
 
