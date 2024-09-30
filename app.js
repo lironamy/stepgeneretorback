@@ -35,6 +35,18 @@ const answerSchema = new mongoose.Schema({
     easygjson: mongoose.Schema.Types.Mixed  // Field for storing JSON
 });
 
+// Define a new schema for storing JSON
+const easyGjsonSchema = new mongoose.Schema({
+    mac_address: { type: String, required: true, unique: true },
+    easygjson: { type: mongoose.Schema.Types.Mixed, required: true },
+    created_at: { type: Date, default: Date.now },
+    updated_at: { type: Date, default: Date.now }
+});
+
+// Create a model based on the schema
+const EasyGjson = mongoose.model('EasyGjson', easyGjsonSchema);
+
+
 // Create a model based on the schema
 const Answer = mongoose.model('Answer', answerSchema);
 
@@ -108,19 +120,45 @@ app.post('/saveeasyjson', async (req, res) => {
     }
 
     try {
-        // Find the answers associated with the given mac_address and update with easygjson
-        const updatedAnswer = await Answer.findOneAndUpdate(
+        // Find or update JSON associated with the given mac_address
+        const updatedGjson = await EasyGjson.findOneAndUpdate(
             { mac_address },
-            { $set: { easygjson } },
-            { new: true, upsert: true } // Return the new document, create if not exists
+            { $set: { easygjson, updated_at: Date.now() } },
+            { new: true, upsert: true }
         );
 
-        res.status(200).json({ message: 'JSON saved successfully', data: updatedAnswer });
+        res.status(200).json({ message: 'JSON saved successfully', data: updatedGjson });
     } catch (error) {
         console.error('Error saving JSON:', error);
         res.status(500).json({ message: 'Error saving JSON', error });
     }
 });
+
+
+
+// Define the geteasyjson GET route to retrieve stored JSON from MongoDB
+app.get('/geteasyjson', async (req, res) => {
+    const { mac_address } = req.query;
+
+    if (!mac_address) {
+        return res.status(400).json({ message: 'mac_address is required' });
+    }
+
+    try {
+        // Retrieve the stored JSON for the provided mac_address
+        const storedJson = await EasyGjson.findOne({ mac_address });
+        if (storedJson) {
+            res.status(200).json({ message: 'JSON retrieved successfully', data: storedJson });
+        } else {
+            res.status(404).json({ message: 'No JSON found for the provided mac_address' });
+        }
+    } catch (error) {
+        console.error('Error retrieving JSON:', error);
+        res.status(500).json({ message: 'Error retrieving JSON', error });
+    }
+});
+
+
 
 // Start the server
 app.listen(port, '0.0.0.0', () => {
